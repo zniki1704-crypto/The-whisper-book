@@ -36,32 +36,37 @@ export class AuthService {
   }
 
   async loadProfile() {
-    if (!this.user()) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', this.user()!.id)
-      .maybeSingle();
-    this.profile.set(data as Profile | null);
-  }
+  if (!this.user()) return;
 
-  async signUp(email: string, password: string, username: string) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', this.user()!.id)
+    .single();
+
+  console.log('Current user:', this.user());
+  console.log('Profile data:', data);
+  console.error('Profile error:', error);
+
+  if (error) throw error;
+
+  this.profile.set(data as Profile);
+}
+
+ async signUp(email: string, password: string, username: string) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        username: username
+      }
+    }
+  });
+
   if (error) throw error;
 
   if (data.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: data.user.id,
-        username,
-        favorite_theme: 'light',
-      });
-
-    if (profileError) {
-      throw profileError;
-    }
-
     await this.logActivity('register', 'Account created');
   }
 
