@@ -174,14 +174,33 @@ export class StoryService {
     return (data ?? []) as Permission[];
   }
 
-  async addPermission(storyId: string, sharedWith: string, level: Permission['permission_level']): Promise<void> {
-    await supabase.from('permissions').insert({ story_id: storyId, shared_with: sharedWith, permission_level: level });
-    await supabase.from('notifications').insert({
-      type: 'story_shared',
-      title: 'A story was shared with you',
-      body: 'You have been granted access to a new story.',
-    });
-  }
+  async addPermission(
+  storyId: string,
+  sharedWith: string,
+  level: Permission['permission_level']
+): Promise<void> {
+
+  const {
+  data: { user }
+} = await supabase.auth.getUser();
+
+const { error } = await supabase
+  .from('permissions')
+  .insert({
+    story_id: storyId,
+    shared_with: sharedWith,
+    permission_level: level,
+    owner_id: user!.id
+  });
+
+if (error) throw error;
+
+  await supabase.from('notifications').insert({
+    type: 'story_shared',
+    title: 'A story was shared with you',
+    body: 'You have been granted access to a new story.',
+  });
+}
 
   async updatePermission(id: string, level: Permission['permission_level']): Promise<void> {
     await supabase.from('permissions').update({ permission_level: level }).eq('id', id);
