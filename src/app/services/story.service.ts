@@ -184,14 +184,18 @@ export class StoryService {
   data: { user }
 } = await supabase.auth.getUser();
 
-const { error } = await supabase
+const { data, error } = await supabase
   .from('permissions')
   .insert({
     story_id: storyId,
     shared_with: sharedWith,
     permission_level: level,
     owner_id: user!.id
-  });
+  })
+  .select();
+
+console.log("INSERT DATA:", data);
+console.log("INSERT ERROR:", error);
 
 if (error) throw error;
 

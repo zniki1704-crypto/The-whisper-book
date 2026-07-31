@@ -73,11 +73,24 @@ export class AuthService {
   return data;
 }
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    await this.logActivity('login', 'Signed in');
-    return data;
-  }
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  console.log("LOGIN DATA:", data);
+  console.log("LOGIN ERROR:", error);
+
+  const sessionCheck = await supabase.auth.getSession();
+
+  console.log("SESSION AFTER LOGIN:", sessionCheck.data.session);
+
+  if (error) throw error;
+
+  await this.logActivity('login', 'Signed in');
+
+  return data;
+}
 
   async signOut() {
     await this.logActivity('logout', 'Signed out');
@@ -119,3 +132,5 @@ export class AuthService {
     await supabase.from('notifications').insert({ type, title, body });
   }
 }
+
+
