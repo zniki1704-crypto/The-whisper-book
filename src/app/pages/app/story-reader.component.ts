@@ -7,7 +7,7 @@ import { MetaService } from '../../services/meta.service';
 import { NotifyService } from '../../services/notify.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
-import { Story, Permission, Comment, SharedLink, PermissionLevel, Profile } from '../../models/models';
+import { Story, Permission, Comment, SharedLink, PermissionLevel, Profile,Collection } from '../../models/models';
 import { ModalComponent } from '../../components/modal/modal.component';
 import { LoaderComponent } from '../../components/loader/loader.component';
 
@@ -29,8 +29,28 @@ import { LoaderComponent } from '../../components/loader/loader.component';
               <svg *ngIf="!s()!.is_favourite" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
               <svg *ngIf="s()!.is_favourite" width="16" height="16" viewBox="0 0 24 24" fill="rgb(var(--accent))" stroke="rgb(var(--accent))" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             </button>
-            <a [routerLink]="['/app/story', s()!.id, 'edit']" class="btn-outline">Edit</a>
-            <button class="btn-outline" (click)="shareOpen=true">Share</button>
+           <a [routerLink]="['/app/story', s()!.id, 'edit']"
+class="btn-outline">
+
+Edit
+
+</a>
+
+<button
+class="btn-outline"
+(click)="openCollectionModal()">
+
+Add to Collection
+
+</button>
+
+<button
+class="btn-outline"
+(click)="shareOpen=true">
+
+Share
+
+</button>
             <button class="btn-ghost" (click)="menuOpen.set(!menuOpen())">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
             </button>
@@ -81,7 +101,9 @@ import { LoaderComponent } from '../../components/loader/loader.component';
 
         <!-- share modal -->
         <app-modal [open]="shareOpen" (close)="shareOpen=false" title="Share this story">
+        
           <div class="space-y-5">
+          
             <!-- permissions -->
             <div>
               <h4 class="text-sm font-medium mb-2" style="color: rgb(var(--text-1));">Share with users</h4>
@@ -138,6 +160,58 @@ import { LoaderComponent } from '../../components/loader/loader.component';
             </div>
           </div>
         </app-modal>
+        <app-modal
+[open]="collectionOpen"
+(close)="collectionOpen=false"
+title="Add Story to Collection">
+
+<div class="space-y-4">
+
+<label class="label">
+Collection
+</label>
+
+<select
+class="input"
+[(ngModel)]="selectedCollection">
+
+<option value="">
+Select Collection
+</option>
+
+<option
+*ngFor="let c of collections()"
+[value]="c.id">
+
+{{ c.name }}
+
+</option>
+
+</select>
+
+</div>
+
+<div class="flex justify-end gap-2 mt-6">
+
+<button
+class="btn-ghost"
+(click)="collectionOpen=false">
+
+Cancel
+
+</button>
+
+<button
+class="btn-primary"
+(click)="addToCollection()">
+
+Add
+
+</button>
+
+</div>
+
+</app-modal>
       </div>
 
       <div *ngIf="!loading() && !s()" class="card text-center py-16">
@@ -163,6 +237,11 @@ export class StoryReaderComponent implements OnInit {
   comments = signal<Comment[]>([]);
   permissions = signal<Permission[]>([]);
   links = signal<SharedLink[]>([]);
+  collections = signal<Collection[]>([]);
+
+collectionOpen = false;
+
+selectedCollection = '';
   menuOpen = signal(false);
 
   shareOpen = false;
@@ -173,10 +252,45 @@ export class StoryReaderComponent implements OnInit {
   newComment = '';
   userId = '';
 
+openCollectionModal() {
+    this.selectedCollection = '';
+    this.collectionOpen = true;
+}
+async addToCollection() {
+
+    if (!this.selectedCollection) {
+        this.toast.warning('Please select a collection.');
+        return;
+    }
+
+    try {
+
+        await this.meta.addToCollection(
+            this.selectedCollection,
+            this.story()!.id
+        );
+
+        this.collectionOpen = false;
+
+        this.selectedCollection = '';
+
+        this.toast.success(
+            'Story added to collection.'
+        );
+
+    } catch (e:any) {
+
+        this.toast.error(e.message);
+
+    }
+
+}
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) { this.router.navigate(['/app/library']); return; }
     this.userId = this.auth.user()?.id ?? '';
+    this.collections.set(
+    await this.meta.listCollections());
     try {
       const story = await this.storySvc.get(id);
       this.story.set(story);

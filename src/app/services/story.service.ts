@@ -197,7 +197,7 @@ const { data, error } = await supabase
 console.log("INSERT DATA:", data);
 console.log("INSERT ERROR:", error);
 
-if (error) throw error;
+if (error) throw error; 
 
   await supabase.from('notifications').insert({
     type: 'story_shared',
